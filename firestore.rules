@@ -27,8 +27,7 @@ service cloud.firestore {
 
       // Users can only update their own profile fields EXCEPT 'role'
       // Admins/SuperUsers can update anything
-      allow update: if isOwner(userId) 
-                    && (!request.resource.data.diff(resource.data).affectedKeys().has('role')) 
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.get('role', 'student'))
                     || isAdminOrSuperUser();
       
       // Only Admins/SuperUsers can delete users
@@ -67,6 +66,14 @@ service cloud.firestore {
 
       // Users can delete (cancel) their own registration
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    // --- STUDENT IDS LOOKUP (For Uniqueness) ---
+    match /student_ids/{studentId} {
+      // Allow public read so we can check if an ID is taken before registration
+      allow read: if true;
+      
+      // Allow authorized users to claim a student ID (create/update/delete)
+      allow write: if isSignedIn();
     }
   }
 }

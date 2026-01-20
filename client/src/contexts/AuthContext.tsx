@@ -142,8 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create Firestore profile immediately
-      // SECURITY: Always default to 'student' role. Admin/Super-user roles must be assigned manually in Firestore console.
+      const batch = await import('firebase/firestore').then(mod => mod.writeBatch(db));
+
+      // 1. Create User Profile
+      // SECURITY: Always default to 'student' role. Admin/Super-user roles must be assigned manually.
       const newProfile: UserProfile = {
         id: result.user.uid,
         email,
@@ -153,7 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
       };
 
-      await setDoc(doc(db, 'users', result.user.uid), newProfile);
+      const userRef = doc(db, 'users', result.user.uid);
+      batch.set(userRef, newProfile);
+
+      // 2. Create Student ID mapping (if provided) to reserve it
+      if (studentId) {
+        const studentIdRef = doc(db, 'student_ids', studentId);
+        batch.set(studentIdRef, { uid: result.user.uid });
+      }
+
+      await batch.commit();
       setUser(newProfile);
     } catch (error) {
       setIsLoading(false);

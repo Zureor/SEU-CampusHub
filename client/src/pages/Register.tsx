@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function Register() {
@@ -70,14 +70,15 @@ export default function Register() {
       return;
     }
 
-    // Check availability of Student ID
+    // Check availability of Student ID via Lookup Table
     try {
       setIsSubmitting(true);
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('studentId', '==', studentId));
-      const querySnapshot = await getDocs(q);
+      // We check the specific document in the student_ids collection
+      // This is allowed by security rules (public read for existence check)
+      const studentIdRef = doc(db, 'student_ids', studentId);
+      const studentIdDoc = await getDoc(studentIdRef);
 
-      if (!querySnapshot.empty) {
+      if (studentIdDoc.exists()) {
         toast({
           title: "Registration Failed",
           description: "This Student ID is already registered.",
@@ -90,7 +91,7 @@ export default function Register() {
       console.error("Error checking student ID:", error);
       toast({
         title: "Error",
-        description: "Failed to validate Student ID.",
+        description: "Failed to validate Student ID. Please try again.",
         variant: "destructive",
       });
       setIsSubmitting(false);

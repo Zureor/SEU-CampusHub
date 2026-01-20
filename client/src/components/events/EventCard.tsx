@@ -77,7 +77,7 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
       className="group"
       data-testid={`card-event-${event.id}`}
     >
-      <div className={`glass rounded-3xl overflow-hidden h-full flex flex-col ${isEventPast ? 'opacity-75' : ''}`}>
+      <div className={`bg-[var(--glass-bg)] backdrop-blur-sm border border-white/10 shadow-md rounded-3xl overflow-hidden h-full flex flex-col ${isEventPast ? 'opacity-75' : ''}`}>
         <div className="relative h-48 overflow-hidden">
           <motion.img
             src={event.bannerUrl}

@@ -93,6 +93,35 @@ export default function AdminDashboard() {
       setIsSyncing(false);
     }
   };
+
+  const handleSyncStudentIds = async () => {
+    if (!confirm("This will populate the Student ID lookup table for ALL existing users. Use this once to fix validation for old accounts.")) return;
+    setIsSyncing(true);
+    try {
+      const { doc } = await import('firebase/firestore');
+
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const batch = writeBatch(db);
+      let count = 0;
+
+      usersSnap.forEach(userDoc => {
+        const userData = userDoc.data();
+        if (userData.studentId) {
+          const ref = doc(db, 'student_ids', userData.studentId);
+          batch.set(ref, { uid: userDoc.id });
+          count++;
+        }
+      });
+
+      await batch.commit();
+      toast({ title: "Student IDs Synced", description: `Updated lookup table for ${count} users.` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Failed to sync Student IDs.", variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   const recentEvents = events.slice(0, 5);
   const publishedCount = events.filter(e => e.status === 'Published').length;
   const draftCount = events.filter(e => e.status === 'Draft').length;
@@ -385,6 +414,16 @@ export default function AdminDashboard() {
                   >
                     {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                     Sync Event Stats
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start glass border-border/50 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                    onClick={handleSyncStudentIds}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ClipboardCheck className="w-4 h-4 mr-2" />}
+                    Sync Student IDs
                   </Button>
                 </CardContent>
               </Card>

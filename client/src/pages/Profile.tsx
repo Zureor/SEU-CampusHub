@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, writeBatch, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function Profile() {
@@ -41,7 +41,7 @@ export default function Profile() {
 
     try {
 
-      if (user.role === 'student' && studentId && studentId.trim() !== '') {
+      if (user.role === 'student' && studentId && studentId.trim() !== '' && studentId !== user.studentId) {
         // Validate format
         if (!/^\d{13}$/.test(studentId)) {
           toast({
@@ -53,13 +53,13 @@ export default function Profile() {
           return;
         }
 
-        // Check uniqueness
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('studentId', '==', studentId));
-        const querySnapshot = await getDocs(q);
+        // Check uniqueness via Lookup Table
+        // We check the specific document in the student_ids collection
+        // This is allowed by security rules (public read for existence check)
+        const studentIdRef = doc(db, 'student_ids', studentId);
+        const studentIdDoc = await getDoc(studentIdRef);
 
-        const isTaken = querySnapshot.docs.some(doc => doc.id !== user.id);
-        if (isTaken) {
+        if (studentIdDoc.exists()) {
           toast({
             title: "Profile Update Failed",
             description: "This Student ID is already used by another account.",
@@ -70,7 +70,7 @@ export default function Profile() {
         }
       }
 
-
+      // Check phone validation
       if (phone && phone.trim() !== '') {
         // Basic phone validation: allows +, -, spaces, and 10-15 digits
         if (!/^[+]?[\d\s-]{10,15}$/.test(phone)) {
@@ -84,13 +84,34 @@ export default function Profile() {
         }
       }
 
+      // Start Batch Write
+      const batch = writeBatch(db);
       const userRef = doc(db, 'users', user.id);
-      await updateDoc(userRef, {
+
+      // 1. Update User Profile
+      batch.update(userRef, {
         name,
         studentId,
         phone,
         bio
       });
+
+      // 2. Manage Student ID Lookup (if changed)
+      if (studentId !== user.studentId) {
+        // If there was an old ID, remove it to free it up
+        if (user.studentId) {
+          const oldIdRef = doc(db, 'student_ids', user.studentId);
+          batch.delete(oldIdRef);
+        }
+
+        // If there is a new ID, claim it
+        if (studentId) {
+          const newIdRef = doc(db, 'student_ids', studentId);
+          batch.set(newIdRef, { uid: user.id });
+        }
+      }
+
+      await batch.commit();
 
       toast({
         title: "Profile Updated",

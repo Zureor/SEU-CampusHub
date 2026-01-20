@@ -56,7 +56,7 @@ export function Navbar() {
       animate={{ y: 0 }}
       className="fixed top-0 left-0 right-0 z-50 px-4 py-4"
     >
-      <nav className="max-w-7xl mx-auto glass rounded-full px-6 py-3 border border-white/20">
+      <nav className="max-w-7xl mx-auto bg-[var(--glass-bg)] backdrop-blur-md border border-white/20 shadow-lg rounded-full px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" data-testid="link-home-logo">
             <motion.div
@@ -65,7 +65,7 @@ export function Navbar() {
               whileTap={{ scale: 0.98 }}
             >
               <img src="/seu.png" alt="SEU Logo" className="w-10 h-10 rounded-full object-cover" />
-              <span className="font-display font-medium text-lg">SEU CampusHub</span>
+              <span className="font-display font-medium text-lg hidden sm:block">SEU CampusHub</span>
             </motion.div>
           </Link>
 
@@ -142,7 +142,7 @@ export function Navbar() {
                     <span className="text-sm font-medium hidden sm:block">{user?.name}</span>
                   </motion.button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 glass border-border mt-2">
+                <DropdownMenuContent align="end" className="w-56 bg-[var(--glass-bg)] backdrop-blur-md border-border mt-2 shadow-xl">
                   <div className="px-3 py-2">
                     <p className="text-sm font-medium">{user?.name}</p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
@@ -226,7 +226,7 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden max-w-7xl mx-auto mt-2 glass rounded-3xl p-4 border border-white/20"
+            className="md:hidden max-w-7xl mx-auto mt-2 bg-[var(--glass-bg)] backdrop-blur-md rounded-3xl p-4 border border-white/20 shadow-xl"
           >
             <div className="flex flex-col gap-2">
 
