@@ -3,3 +3,6 @@ dist
 .DS_Store
 server/public
 
+# Environment variables
+.env
+.env.*
