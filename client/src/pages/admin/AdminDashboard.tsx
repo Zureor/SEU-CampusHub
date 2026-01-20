@@ -122,6 +122,62 @@ export default function AdminDashboard() {
       setIsSyncing(false);
     }
   };
+
+  const handleCleanupDuplicateRegistrations = async () => {
+    if (!confirm("This will remove duplicate registrations (same user + same event). Keep only the most recent. Proceed?")) return;
+    setIsSyncing(true);
+    try {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+
+      const regsSnap = await getDocs(collection(db, 'registrations'));
+      const registrations: { id: string; eventId: string; userId: string; registeredAt: any }[] = [];
+
+      regsSnap.forEach(docSnap => {
+        const data = docSnap.data();
+        registrations.push({
+          id: docSnap.id,
+          eventId: data.eventId,
+          userId: data.userId,
+          registeredAt: data.registeredAt
+        });
+      });
+
+      // Group by eventId + userId
+      const grouped: Record<string, typeof registrations> = {};
+      registrations.forEach(reg => {
+        const key = `${reg.eventId}_${reg.userId}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(reg);
+      });
+
+      // Find duplicates and delete older ones
+      let deletedCount = 0;
+      for (const key in grouped) {
+        const group = grouped[key];
+        if (group.length > 1) {
+          // Sort by registeredAt descending (keep newest)
+          group.sort((a, b) => {
+            const aTime = a.registeredAt?.toDate?.()?.getTime() || 0;
+            const bTime = b.registeredAt?.toDate?.()?.getTime() || 0;
+            return bTime - aTime;
+          });
+
+          // Delete all except the first (newest)
+          for (let i = 1; i < group.length; i++) {
+            await deleteDoc(doc(db, 'registrations', group[i].id));
+            deletedCount++;
+          }
+        }
+      }
+
+      toast({ title: "Cleanup Complete", description: `Removed ${deletedCount} duplicate registrations.` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error", description: "Failed to cleanup duplicates.", variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   const recentEvents = events.slice(0, 5);
   const publishedCount = events.filter(e => e.status === 'Published').length;
   const draftCount = events.filter(e => e.status === 'Draft').length;
@@ -424,6 +480,16 @@ export default function AdminDashboard() {
                   >
                     {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ClipboardCheck className="w-4 h-4 mr-2" />}
                     Sync Student IDs
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start glass border-border/50 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                    onClick={handleCleanupDuplicateRegistrations}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                    Cleanup Duplicate Registrations
                   </Button>
                 </CardContent>
               </Card>

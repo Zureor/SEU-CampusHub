@@ -18,9 +18,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
 
   useEffect(() => {
     if (isSignInWithEmailLink(auth, window.location.href)) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'wouter';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
@@ -23,9 +23,16 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,8 +282,8 @@ export default function Register() {
                 type="submit"
                 disabled={isSubmitting || !agreeToTerms}
                 className={`w-full h-12 border-0 rounded-xl text-lg ${agreeToTerms
-                    ? 'bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                  ? 'bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
                   }`}
                 data-testid="button-register-submit"
               >

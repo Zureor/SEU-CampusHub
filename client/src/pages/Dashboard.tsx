@@ -264,12 +264,6 @@ export default function Dashboard() {
                       Browse Events
                     </Button>
                   </Link>
-                  <Link href="/saved-events">
-                    <Button variant="outline" className="w-full justify-start glass border-border/50">
-                      <Bookmark className="w-4 h-4 mr-2" />
-                      Saved Events
-                    </Button>
-                  </Link>
                   <Link href="/profile">
                     <Button variant="outline" className="w-full justify-start glass border-border/50">
                       <CheckCircle className="w-4 h-4 mr-2" />

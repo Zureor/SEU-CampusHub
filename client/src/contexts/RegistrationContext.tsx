@@ -102,27 +102,16 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             throw new Error('Event is fully booked');
         }
 
-        // check if there is a cancelled registration to reactivate
-        const existingRegistration = registrations.find(
-            r => r.eventId === eventId && r.userId === user.id && r.status === 'Cancelled'
-        );
-
-        if (existingRegistration) {
-            await updateDoc(doc(db, "registrations", existingRegistration.id), {
-                status: 'Registered',
-                registeredAt: Timestamp.now()
-            });
-        } else {
-            await addDoc(collection(db, "registrations"), {
-                eventId,
-                userId: user.id,
-                registeredAt: Timestamp.now(),
-                status: 'Registered',
-                userEmail: user.email,
-                userName: user.name,
-                studentId: user.studentId || 'N/A'
-            });
-        }
+        // Create new registration (we delete on cancel, so no need to check for cancelled ones)
+        await addDoc(collection(db, "registrations"), {
+            eventId,
+            userId: user.id,
+            registeredAt: Timestamp.now(),
+            status: 'Registered',
+            userEmail: user.email,
+            userName: user.name,
+            studentId: user.studentId || 'N/A'
+        });
 
         // Update Event Count
         await updateDoc(eventRef, {
@@ -142,9 +131,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         );
 
         if (registration) {
-            await updateDoc(doc(db, "registrations", registration.id), {
-                status: 'Cancelled'
-            });
+            // Delete the registration document entirely to prevent race conditions
+            // with the reactivation logic in registerForEvent
+            const { deleteDoc } = await import('firebase/firestore');
+            await deleteDoc(doc(db, "registrations", registration.id));
 
             // Decrease Event Count
             await updateDoc(doc(db, 'events', eventId), {

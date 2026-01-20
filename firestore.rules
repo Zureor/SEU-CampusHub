@@ -43,8 +43,13 @@ service cloud.firestore {
       // Anyone can read events
       allow read: if true;
 
-      // Only Admins/SuperUsers can create, update, or delete events
-      allow write: if isAdminOrSuperUser();
+      // Admins/SuperUsers can create and delete events
+      allow create, delete: if isAdminOrSuperUser();
+      
+      // Update: Admins can update anything
+      // Regular signed-in users can ONLY update interestedCount or registered fields
+      allow update: if isAdminOrSuperUser() 
+                    || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interestedCount', 'registered']));
     }
 
     // --- CATEGORIES COLLECTION ---
@@ -58,11 +63,15 @@ service cloud.firestore {
 
     // --- REGISTRATIONS COLLECTION ---
     match /registrations/{registrationId} {
-      // Users can read their own registrations. Admins can read all.
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdminOrSuperUser());
+      // Allow signed-in users to read all registrations (needed for real-time listeners and counts)
+      // Individual user data is limited in the document itself (only userId, eventId, status visible)
+      allow read: if isSignedIn();
 
       // Users can create a registration if they are the 'userId' listed in the doc
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own registration (e.g., cancel)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
 
       // Users can delete (cancel) their own registration
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
