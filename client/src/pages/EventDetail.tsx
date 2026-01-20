@@ -78,7 +78,8 @@ export default function EventDetail() {
 
   const eventIsInterested = id ? isInterested(id) : false;
   const userIsRegistered = id ? isRegistered(id) : false;
-  const dynamicRegisteredCount = event?.registered || 0;
+  // Use getRegistrationCount for real-time accuracy instead of event.registered
+  const dynamicRegisteredCount = id ? getRegistrationCount(id) : 0;
   const isEventPast = event ? new Date(event.date) < new Date() : false;
 
   if (!event) {

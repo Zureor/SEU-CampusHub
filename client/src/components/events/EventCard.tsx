@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useInterestedEvents } from '@/contexts/InterestedEventsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRegistration } from '@/contexts/RegistrationContext';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 
@@ -19,6 +20,7 @@ interface EventCardProps {
 export function EventCard({ event, index = 0 }: EventCardProps) {
   const { isAuthenticated } = useAuth();
   const { isInterested, toggleInterested } = useInterestedEvents();
+  const { getRegistrationCount } = useRegistration();
   const { data: categories = [] } = useCategories();
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -138,7 +140,7 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
             {event.capacity && (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary/70" />
-                <span>{event.registered} / {event.capacity} registered</span>
+                <span>{getRegistrationCount(event.id)} / {event.capacity} registered</span>
               </div>
             )}
           </div>

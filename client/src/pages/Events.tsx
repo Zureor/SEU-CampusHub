@@ -21,6 +21,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useInterestedEvents } from '@/contexts/InterestedEventsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRegistration } from '@/contexts/RegistrationContext';
 import { useToast } from '@/hooks/use-toast';
 import { Event } from '@/types';
 
@@ -51,6 +52,7 @@ export default function Events() {
   const { data: categories = [] } = useCategories();
   const { isAuthenticated } = useAuth();
   const { isInterested, toggleInterested } = useInterestedEvents();
+  const { getRegistrationCount } = useRegistration();
   const { toast } = useToast();
 
   const publishedEvents = events.filter(e => e.status === 'Published');
@@ -70,7 +72,7 @@ export default function Events() {
       return a.title.localeCompare(b.title);
     }
     if (sortBy === 'popularity') {
-      return (b.registered || 0) - (a.registered || 0);
+      return (getRegistrationCount(b.id) || 0) - (getRegistrationCount(a.id) || 0);
     }
     return 0;
   });

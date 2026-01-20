@@ -15,6 +15,7 @@ import {
 import { Navbar } from '@/components/layout/Navbar';
 import { FloatingShapes } from '@/components/3d/FloatingShapes';
 import { useEvents, useUpdateEvent, useDeleteEvent } from '@/hooks/useEvents';
+import { useRegistration } from '@/contexts/RegistrationContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ export default function AdminEvents() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const { data: events = [], isLoading } = useEvents(); // Fetch events
+  const { getRegistrationCount } = useRegistration();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
   const { toast } = useToast();
@@ -224,7 +226,7 @@ export default function AdminEvents() {
                           </TableCell>
                           <TableCell>
                             {event.capacity ? (
-                              <span>{event.registered || 0} / {event.capacity}</span>
+                              <span>{getRegistrationCount(event.id)} / {event.capacity}</span>
                             ) : (
                               <span className="text-muted-foreground">N/A</span>
                             )}

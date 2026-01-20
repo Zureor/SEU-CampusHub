@@ -124,53 +124,88 @@ export default function AdminDashboard() {
   };
 
   const handleCleanupDuplicateRegistrations = async () => {
-    if (!confirm("This will remove duplicate registrations (same user + same event). Keep only the most recent. Proceed?")) return;
+    if (!confirm("This will remove duplicate registrations AND recalculate all event registration counts from the database. Proceed?")) return;
     setIsSyncing(true);
     try {
-      const { deleteDoc, doc } = await import('firebase/firestore');
+      const { deleteDoc, doc, updateDoc, writeBatch } = await import('firebase/firestore');
 
+      // 1. Fetch all registrations
       const regsSnap = await getDocs(collection(db, 'registrations'));
-      const registrations: { id: string; eventId: string; userId: string; registeredAt: any }[] = [];
+
+      // Map: EventID -> Map<UserID, Array<Registration>>
+      const eventUserRegs = new Map<string, Map<string, { id: string, registeredAt: any }[]>>();
 
       regsSnap.forEach(docSnap => {
         const data = docSnap.data();
-        registrations.push({
+        const eventId = data.eventId;
+        const userId = data.userId;
+
+        if (!eventId || !userId) return;
+
+        if (!eventUserRegs.has(eventId)) {
+          eventUserRegs.set(eventId, new Map());
+        }
+
+        const userMap = eventUserRegs.get(eventId)!;
+        if (!userMap.has(userId)) {
+          userMap.set(userId, []);
+        }
+
+        userMap.get(userId)!.push({
           id: docSnap.id,
-          eventId: data.eventId,
-          userId: data.userId,
           registeredAt: data.registeredAt
         });
       });
 
-      // Group by eventId + userId
-      const grouped: Record<string, typeof registrations> = {};
-      registrations.forEach(reg => {
-        const key = `${reg.eventId}_${reg.userId}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(reg);
-      });
-
-      // Find duplicates and delete older ones
       let deletedCount = 0;
-      for (const key in grouped) {
-        const group = grouped[key];
-        if (group.length > 1) {
-          // Sort by registeredAt descending (keep newest)
-          group.sort((a, b) => {
-            const aTime = a.registeredAt?.toDate?.()?.getTime() || 0;
-            const bTime = b.registeredAt?.toDate?.()?.getTime() || 0;
-            return bTime - aTime;
-          });
+      const eventCounts: Record<string, number> = {};
 
-          // Delete all except the first (newest)
-          for (let i = 1; i < group.length; i++) {
-            await deleteDoc(doc(db, 'registrations', group[i].id));
-            deletedCount++;
+      // 2. Process duplicates & count valid registrations
+      for (const [eventId, userMap] of Array.from(eventUserRegs.entries())) {
+        let validUserCount = 0;
+
+        for (const [userId, regs] of Array.from(userMap.entries())) {
+          // If user has > 1 registration, delete older ones
+          if (regs.length > 1) {
+            // Sort: Newest first
+            regs.sort((a: any, b: any) => {
+              const aTime = a.registeredAt?.toDate?.()?.getTime() || 0;
+              const bTime = b.registeredAt?.toDate?.()?.getTime() || 0;
+              return bTime - aTime;
+            });
+
+            // Keep index 0, delete others
+            for (let i = 1; i < regs.length; i++) {
+              await deleteDoc(doc(db, 'registrations', regs[i].id));
+              deletedCount++;
+            }
           }
+          validUserCount++;
         }
+        eventCounts[eventId] = validUserCount;
       }
 
-      toast({ title: "Cleanup Complete", description: `Removed ${deletedCount} duplicate registrations.` });
+      // 3. Update ALL events with correct counts
+      const eventsSnap = await getDocs(collection(db, 'events'));
+      const batch = writeBatch(db);
+      let batchCount = 0;
+
+      eventsSnap.forEach(eventDoc => {
+        const eventId = eventDoc.id;
+        const actualCount = eventCounts[eventId] || 0; // 0 if no registrations found
+        const currentCount = eventDoc.data().registered || 0;
+
+        if (actualCount !== currentCount) {
+          batch.update(eventDoc.ref, { registered: actualCount });
+          batchCount++;
+        }
+      });
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      toast({ title: "Cleanup Complete", description: `Removed ${deletedCount} duplicates. Updated counts for ${batchCount} events.` });
     } catch (e) {
       console.error(e);
       toast({ title: "Error", description: "Failed to cleanup duplicates.", variant: "destructive" });

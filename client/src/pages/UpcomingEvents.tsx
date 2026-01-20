@@ -9,6 +9,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useInterestedEvents } from '@/contexts/InterestedEventsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRegistration } from '@/contexts/RegistrationContext';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export default function UpcomingEvents() {
     const { data: categories = [] } = useCategories();
     const { isAuthenticated } = useAuth();
     const { isInterested, toggleInterested } = useInterestedEvents();
+    const { getRegistrationCount } = useRegistration();
     const { toast } = useToast();
 
     const publishedEvents = events.filter(e => e.status === 'Published' && new Date(e.date) >= new Date());
@@ -60,7 +62,7 @@ export default function UpcomingEvents() {
             return a.title.localeCompare(b.title);
         }
         if (sortBy === 'popularity') {
-            return (b.registered || 0) - (a.registered || 0);
+            return (getRegistrationCount(b.id) || 0) - (getRegistrationCount(a.id) || 0);
         }
         return 0;
     });
