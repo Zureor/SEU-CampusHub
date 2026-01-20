@@ -273,8 +273,11 @@ export default function Register() {
 
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white border-0 rounded-xl text-lg"
+                disabled={isSubmitting || !agreeToTerms}
+                className={`w-full h-12 border-0 rounded-xl text-lg ${agreeToTerms
+                    ? 'bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                  }`}
                 data-testid="button-register-submit"
               >
                 {isSubmitting ? 'Creating account...' : 'Create Account'}

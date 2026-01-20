@@ -171,7 +171,7 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white border-0 rounded-xl text-lg"
+                className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground border-0 rounded-xl text-lg"
                 data-testid="button-login-submit"
               >
                 {isSubmitting ? 'Signing in...' : 'Sign In'}

@@ -204,7 +204,7 @@ export default function EventRegistrations() {
 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button className="bg-gradient-to-r from-primary to-accent text-white border-0">
+                                        <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground border-0">
                                             <Download className="w-4 h-4 mr-2" />
                                             Export
                                         </Button>
