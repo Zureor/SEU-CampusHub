@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is an Admin or Super User
+    // We read the 'role' field from the user's document in the 'users' collection
+    function isAdminOrSuperUser() {
+      return isSignedIn() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super-user');
+    }
+
+    // Helper function to check if the user is accessing their own document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // Anyone can read user profiles (needed for showing attendees, etc.)
+      allow read: if isSignedIn();
+
+      // Users can only update their own profile fields EXCEPT 'role'
+      // Admins/SuperUsers can update anything
+      allow update: if isOwner(userId) 
+                    && (!request.resource.data.diff(resource.data).affectedKeys().has('role')) 
+                    || isAdminOrSuperUser();
+      
+      // Only Admins/SuperUsers can delete users
+      allow delete: if isAdminOrSuperUser();
+
+      // Creation: Allow users to create their own doc, but ROLE must be 'student'
+      allow create: if isOwner(userId)
+                    && request.resource.data.role == 'student';
+    }
+
+    // --- EVENTS COLLECTION ---
+    match /events/{eventId} {
+      // Anyone can read events
+      allow read: if true;
+
+      // Only Admins/SuperUsers can create, update, or delete events
+      allow write: if isAdminOrSuperUser();
+    }
+
+    // --- CATEGORIES COLLECTION ---
+    match /categories/{categoryId} {
+      // Anyone can read categories
+      allow read: if true;
+      
+      // Only Admins/SuperUsers can manage categories
+      allow write: if isAdminOrSuperUser();
+    }
+
+    // --- REGISTRATIONS COLLECTION ---
+    match /registrations/{registrationId} {
+      // Users can read their own registrations. Admins can read all.
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdminOrSuperUser());
+
+      // Users can create a registration if they are the 'userId' listed in the doc
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Users can delete (cancel) their own registration
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
