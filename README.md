@@ -1,7 +1,7 @@
 
 # 🎓 SEU CampusHub
 
-![SEU CampusHub Banner](client/public/opengraph.jpg)
+![SEU CampusHub Banner](client/public/homepage.png)
 
 > **A modern, dynamic event management platform tailored for Southeast University students and administrators.**  
 > *Discover, Register, and Manage Campus Events with Ease.* 🚀
@@ -124,8 +124,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License.
 
----
-
-<p align="center">
-  Built with ❤️ by the SEU CampusHub Team
-</p>
