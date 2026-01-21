@@ -13,7 +13,8 @@ import {
     updateDoc,
     getDocs,
     getDoc,
-    increment
+    increment,
+    deleteDoc
 } from 'firebase/firestore';
 
 interface Registration {
@@ -94,15 +95,22 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         if (!eventDoc.exists()) throw new Error('Event not found');
 
         const eventData = eventDoc.data();
-        // Use local count if available for faster check, but source of truth is DB
-        const currentRegistered = eventData.registered || 0;
         const capacity = eventData.capacity;
+
+        // Get actual current count from DB to be safe
+        const countQuery = query(
+            collection(db, 'registrations'),
+            where('eventId', '==', eventId),
+            where('status', '==', 'Registered')
+        );
+        const countSnapshot = await getDocs(countQuery);
+        const currentRegistered = countSnapshot.size;
 
         if (capacity && currentRegistered >= capacity) {
             throw new Error('Event is fully booked');
         }
 
-        // Create new registration (we delete on cancel, so no need to check for cancelled ones)
+        // Create new registration
         await addDoc(collection(db, "registrations"), {
             eventId,
             userId: user.id,
@@ -113,9 +121,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             studentId: user.studentId || 'N/A'
         });
 
-        // Update Event Count
+        // Update Event Count with exact value (current + 1)
+        // We use the calculated value to self-heal any previous drift
         await updateDoc(eventRef, {
-            registered: increment(1)
+            registered: currentRegistered + 1
         });
 
         // Invalidate both event list and specific event details
@@ -131,14 +140,24 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         );
 
         if (registration) {
-            // Delete the registration document entirely to prevent race conditions
-            // with the reactivation logic in registerForEvent
-            const { deleteDoc } = await import('firebase/firestore');
+            // Delete the registration document
             await deleteDoc(doc(db, "registrations", registration.id));
 
-            // Decrease Event Count
+            // Recalculate count to fix any potential bugs/negatives
+            const countQuery = query(
+                collection(db, 'registrations'),
+                where('eventId', '==', eventId),
+                where('status', '==', 'Registered')
+            );
+            const countSnapshot = await getDocs(countQuery);
+            // The snapshot might still include the one we just deleted if we are fast, 
+            // but since we awaited deleteDoc, it should be gone. 
+            // However, Firestore consistency is usually strong for reads after writes in same client?
+            // Actually, to be safe, we can just use the size.
+            const newCount = countSnapshot.size;
+
             await updateDoc(doc(db, 'events', eventId), {
-                registered: increment(-1)
+                registered: newCount
             });
 
             queryClient.invalidateQueries({ queryKey: ['events'] });

@@ -99,7 +99,7 @@ export default function CreateEvent() {
     setStatus('loading');
 
     try {
-      const payload = {
+      const payload: any = {
         title: formData.title,
         category: formData.category,
         date: formData.date,
@@ -111,8 +111,7 @@ export default function CreateEvent() {
         registrationRequired: formData.registrationRequired,
         status: (publish ? 'Published' : 'Draft') as 'Published' | 'Draft',
         bannerUrl: existingEvent?.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-        organizer: formData.organizer || 'Admin',
-        registered: existingEvent?.registered || 0
+        organizer: formData.organizer || 'Admin'
       };
 
       if (eventId) {
@@ -125,6 +124,8 @@ export default function CreateEvent() {
           description: "Your changes have been saved successfully."
         });
       } else {
+        // Initialize registered count for new events
+        payload.registered = 0;
         await createEventMutation.mutateAsync(payload);
         toast({
           title: publish ? "Event Published!" : "Draft Saved",
@@ -407,7 +408,6 @@ export default function CreateEvent() {
                       status={saveStatus}
                       loadingText="Saving..."
                       successText="Saved"
-                      icon={<Save className="w-4 h-4 mr-2" />}
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {eventId ? 'Save as Draft / Unpublish' : 'Save as Draft'}
@@ -419,7 +419,6 @@ export default function CreateEvent() {
                       status={publishStatus}
                       loadingText="Publishing..."
                       successText="Published!"
-                      icon={<Send className="w-4 h-4 mr-2" />}
                     >
                       <Send className="w-4 h-4 mr-2" />
                       {eventId ? 'Update & Publish' : 'Publish Event'}

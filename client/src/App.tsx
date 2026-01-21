@@ -29,6 +29,7 @@ import CreateEvent from "@/pages/admin/CreateEvent";
 import AdminCategories from "@/pages/admin/AdminCategories";
 import SuperUserUsers from "@/pages/admin/SuperUserUsers";
 import EventRegistrations from "@/pages/admin/EventRegistrations";
+import AllRegistrations from "@/pages/admin/AllRegistrations";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import Feedback from "@/pages/Feedback";
@@ -127,6 +128,12 @@ function Router() {
         <Route path="/admin/users">
           <AdminRoute>
             <SuperUserUsers />
+          </AdminRoute>
+        </Route>
+
+        <Route path="/admin/registrations">
+          <AdminRoute>
+            <AllRegistrations />
           </AdminRoute>
         </Route>
 

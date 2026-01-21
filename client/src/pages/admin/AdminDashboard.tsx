@@ -30,7 +30,7 @@ import { FloatingShapes } from '@/components/3d/FloatingShapes';
 import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useUsers } from '@/hooks/useUsers';
-import { useAllRegistrations } from '@/hooks/useRegistrations';
+import { useRegistration } from '@/contexts/RegistrationContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,13 +49,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+import { useAuth } from '@/contexts/AuthContext';
+
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const { isSuperUser } = useAuth();
 
   const { data: events = [], isLoading: isLoadingEvents } = useEvents();
   const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
   const { data: users = [], isLoading: isLoadingUsers } = useUsers();
-  const { data: registrations = [], isLoading: isLoadingRegistrations } = useAllRegistrations();
+  const { registrations } = useRegistration();
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -221,7 +224,7 @@ export default function AdminDashboard() {
   const stats = [
     { icon: Calendar, value: events.length.toString(), label: 'Total Events', change: null, color: 'from-purple-500 to-pink-500', isLoading: isLoadingEvents },
     { icon: Users, value: users.length.toString(), label: 'Total Users', change: null, color: 'from-blue-500 to-cyan-500', isLoading: isLoadingUsers },
-    { icon: ClipboardCheck, value: registrations.length.toString(), label: 'Total Registrations', change: null, color: 'from-green-500 to-emerald-500', isLoading: isLoadingRegistrations },
+    { icon: ClipboardCheck, value: registrations.length.toString(), label: 'Total Registrations', change: null, color: 'from-green-500 to-emerald-500' },
     { icon: Heart, value: totalInterests.toString(), label: 'Total Interests', change: null, color: 'from-orange-500 to-amber-500', isLoading: isLoadingEvents },
   ];
 
@@ -254,15 +257,10 @@ export default function AdminDashboard() {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="glass border-0">
-                  <CardContent className="p-4 md:p-6">
+            {stats.map((stat, index) => {
+              const content = (
+                <Card className={`glass border-0 h-full ${stat.label === 'Total Registrations' ? 'cursor-pointer hover:bg-primary/5 transition-colors' : ''}`}>
+                  <CardContent className="p-4 md:p-6 h-full flex flex-col justify-between relative z-10">
                     <div className="flex items-center justify-between mb-4">
                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
                         <stat.icon className="w-6 h-6 text-white" />
@@ -273,16 +271,35 @@ export default function AdminDashboard() {
                         </Badge>
                       )}
                     </div>
-                    {stat.isLoading ? (
-                      <div className="h-9 w-16 bg-muted rounded animate-pulse mb-1" />
-                    ) : (
-                      <div className="font-display text-2xl md:text-3xl font-bold mb-1">{stat.value}</div>
-                    )}
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    <div>
+                      {stat.isLoading ? (
+                        <div className="h-9 w-16 bg-muted rounded animate-pulse mb-1" />
+                      ) : (
+                        <div className="font-display text-2xl md:text-3xl font-bold mb-1">{stat.value}</div>
+                      )}
+                      <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
+              );
+
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  {stat.label === 'Total Registrations' ? (
+                    <Link href="/admin/registrations">
+                      {content}
+                    </Link>
+                  ) : (
+                    content
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -517,15 +534,17 @@ export default function AdminDashboard() {
                     Sync Student IDs
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start glass border-border/50 text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                    onClick={handleCleanupDuplicateRegistrations}
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                    Cleanup Duplicate Registrations
-                  </Button>
+                  {isSuperUser && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start glass border-border/50 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      onClick={handleCleanupDuplicateRegistrations}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                      Fix Registration Counts (Cleanup)
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

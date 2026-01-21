@@ -116,7 +116,14 @@ export function useAllRegistrations() {
         queryKey: ['all-registrations'],
         queryFn: async () => {
             const snapshot = await getDocs(collection(db, 'registrations'));
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Registration));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    registeredAt: data.registeredAt?.toDate?.().toISOString() || data.registeredAt || new Date().toISOString()
+                } as Registration;
+            });
         }
     });
 }

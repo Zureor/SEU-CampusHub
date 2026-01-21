@@ -15,6 +15,12 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super-user');
     }
 
+    // Helper function to check if user is a Super User
+    function isSuperUser() {
+      return isSignedIn() && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super-user';
+    }
+
     // Helper function to check if the user is accessing their own document
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
@@ -70,11 +76,11 @@ service cloud.firestore {
       // Users can create a registration if they are the 'userId' listed in the doc
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      // Users can update their own registration (e.g., cancel)
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can update their own registration (e.g., cancel), Admins can update any
+      allow update: if isAdminOrSuperUser() || (isSignedIn() && resource.data.userId == request.auth.uid);
 
-      // Users can delete (cancel) their own registration
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can delete (cancel) their own registration, ONLY SUPER USERS can delete any
+      allow delete: if isSuperUser() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
     // --- STUDENT IDS LOOKUP (For Uniqueness) ---
     match /student_ids/{studentId} {
